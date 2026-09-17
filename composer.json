@@ -1,0 +1,6 @@
+{
+    "require": {
+        "setasign/tfpdf": "^1.33",
+        "phpmailer/phpmailer": "^7.1"
+    }
+}
