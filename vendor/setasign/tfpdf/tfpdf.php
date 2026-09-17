@@ -520,7 +520,7 @@ function AddFont($family, $style='', $file='', $uni=false)
 			$s.='$originalsize='.$originalsize.";\n";
 			$s.='$fontkey=\''.$fontkey."';\n";
 			$s.="?>";
-			if (is_writable(dirname($this->fontpath.'unifont/'.'x'))) {
+			if ((!defined('FPDF_CACHE_MODE') || FPDF_CACHE_MODE != 1) && is_writable(dirname($this->fontpath.'unifont/'.'x'))) {
 				$fh = fopen($unifilename.'.mtx.php',"w");
 				fwrite($fh,$s,strlen($s));
 				fclose($fh);
@@ -534,6 +534,8 @@ function AddFont($family, $style='', $file='', $uni=false)
 		else {
 			$cw = @file_get_contents($unifilename.'.cw.dat'); 
 		}
+		// NIAG: cached metrics may contain a path from another installation.
+		$ttffile = $ttffilename;
 		$i = count($this->fonts)+1;
 		if(!empty($this->AliasNbPages))
 			$sbarr = range(0,57);
@@ -2032,7 +2034,7 @@ protected function _putTTfontwidths($font, $maxUni) {
 	// for each character
 	for ($cid=$startcid; $cid<$cwlen; $cid++) {
 		if ($cid==128 && (!file_exists($font['unifilename'].'.cw127.php'))) {
-			if (is_writable(dirname($this->fontpath.'unifont/x'))) {
+			if ((!defined('FPDF_CACHE_MODE') || FPDF_CACHE_MODE != 1) && is_writable(dirname($this->fontpath.'unifont/x'))) {
 				$fh = fopen($font['unifilename'].'.cw127.php',"wb");
 				$cw127='<?php'."\n";
 				$cw127.='$rangeid='.$rangeid.";\n";

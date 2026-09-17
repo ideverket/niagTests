@@ -33,8 +33,17 @@ function finish_attempt(array &$db, array &$a): void {
     $a['score'] = count(array_filter($a['answers'], fn($v) => $v['correct']));
     $a['passed'] = $a['score'] >= $a['test']['passCount'];
     if ($a['passed']) {
-        $a['diplomaMailSent'] = send_email($db, $a['person']['email'], 'NIAG – diplom / certificate',
-            'Ditt diplom från NIAG bifogas. / Your NIAG certificate is attached.', diploma_pdf($a));
+        $a['diplomaMailSent'] = false;
+        try {
+            $a['diplomaMailSent'] = send_email($db, $a['person']['email'], 'NIAG – diplom / certificate',
+                'Ditt diplom från NIAG bifogas. / Your NIAG certificate is attached.', diploma_pdf($a));
+        } catch (Throwable $e) {
+            // A diploma failure must never discard the last answer or the test result.
+            error_log('NIAG diploma generation failed for attempt '.$a['id'].': '.$e->getMessage());
+            $db['mailLog'][] = ['id'=>uid(), 'at'=>time(), 'to'=>$a['person']['email'],
+                'subject'=>'NIAG – diplom / certificate', 'status'=>'failed',
+                'error'=>'Diplomet kunde inte skapas. Testresultatet är sparat. Kontrollera PDF-bibliotek och typsnitt på servern.'];
+        }
     }
 }
 function expire_question(array &$db, array &$a): void {
