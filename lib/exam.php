@@ -21,7 +21,7 @@ function test_link(string $id): string {
 function public_test(array $test, array $db): array {
     $bank = $db['banks'][index_of($db['banks'], $test['bankId'])];
     return array_intersect_key($test, array_flip(['id','title','description','questionCount','priceEur','paidDays','paidMaxAttempts','codeSeconds','paidSeconds'])) +
-        ['available' => $test['active'] && count($bank['questions']) >= $test['questionCount'], 'paymentMode' => $db['settings']['paymentMode']];
+        ['available' => $test['active'] && count($bank['questions']) >= $test['questionCount'], 'paymentMode' => $db['settings']['paymentMode'], 'paymentReady' => $db['settings']['paymentMode'] === 'fake' || (stripe_ready($db['settings']) && $test['priceEur'] >= 0.50)];
 }
 function my_attempt_index(array $db, string $id): int {
     if (!in_array($id, $_SESSION['attempts'] ?? [], true) && !admin_email($db)) fail('Testet tillhör en annan session.', 403);

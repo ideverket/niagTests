@@ -236,6 +236,7 @@ function storage_request(string $action, array $input, callable $fn): mixed {
 function storage_cleanup(): void {
     $cutoff = time() - storage_read('settings.json')['retentionDays'] * 86400;
     $groups = [
+        ['payments/*.json', fn($v)=>'payment:'.$v['id'], fn($v)=>($v['expires'] ?? $v['createdAt']+86400) < $cutoff],
         ['tests/*/result-*.json', fn($v)=>'attempt:'.$v['id'], fn($v)=>($v['finishedAt'] ?? $v['startedAt']) < $cutoff],
         ['tests/*/access/*.json', fn($v)=>'grant:'.$v['id'], fn($v)=>$v['expires'] < $cutoff],
         ['tests/*/invitations/*.json', fn($v)=>'invite:'.$v['id'], fn($v)=>$v['expires'] < $cutoff],

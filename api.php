@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/lib/bootstrap.php';
 require __DIR__.'/lib/pdf.php';
 require __DIR__.'/lib/exam.php';
+require __DIR__.'/lib/stripe.php';
 
 try {
     start_session();
@@ -84,7 +85,7 @@ try {
                 }
                 fail('Koden är felaktig, förbrukad eller har gått ut. Kontrollera även e-postadressen.', 403);
             }
-            if (($input['method'] ?? '') !== 'fake' || $db['settings']['paymentMode'] !== 'fake') fail('Stripe-betalning är inte aktiverad i denna version.', 503);
+            if (($input['method'] ?? '') !== 'fake' || $db['settings']['paymentMode'] !== 'fake') fail('Ogiltigt betalningssätt.', 503);
             // A retry must not create an extra payment/access grant.
             $old = $_SESSION['grants'][$t['id']] ?? null;
             foreach ($db['grants'] as $g) if ($g['id'] === $old && $g['email'] === $email && $g['expires'] > time() && $g['used'] < $g['max']) return ['ok'=>true, 'expires'=>$g['expires']];
@@ -119,7 +120,7 @@ try {
             for ($i=count($questions)-1; $i>0; $i--) { $j=random_int(0,$i); [$questions[$i],$questions[$j]]=[$questions[$j],$questions[$i]]; }
             $a = ['id'=>uid(),'grantId'=>$g['id'],'test'=>$t,'person'=>$person,'language'=>$lang,
                 'kind'=>$g['kind'],'simulated'=>$g['simulated'] ?? false,'questions'=>array_slice($questions,0,$t['questionCount']),
-                'answers'=>[],'seconds'=>$g['kind']==='code' ? $t['codeSeconds'] : $t['paidSeconds'],
+                'answers'=>[],'seconds'=>$g['kind']==='code' ? $t['codeSeconds'] : ($g['paidSeconds'] ?? $t['paidSeconds']),
                 'startedAt'=>time(),'questionStartedAt'=>time(),'finishedAt'=>null];
             $g['used']++; $db['attempts'][]=$a; $_SESSION['attempts'][]=$a['id']; return attempt_view($a);
         }
@@ -274,6 +275,7 @@ try {
             if ($transport !== 'file' && !$from) fail('Ange en avsändaradress för e-post.');
             $settings['mailTransport']=$transport; $settings['secureCookie']=$secure;
             $settings['mailFrom']=$from; $settings['paymentMode']=$mode;
+            $settings['stripeBaseUrl']=isset($input['stripeBaseUrl']) && trim($input['stripeBaseUrl']) !== '' ? stripe_base_url($input['stripeBaseUrl']) : ($settings['stripeBaseUrl'] ?? '');
             $settings['retentionDays']=integer($input['retentionDays'] ?? 30,1,3650);
             foreach (['stripeSandbox','stripeLive'] as $key) foreach (['publishableKey','secretKey','webhookSecret'] as $field) {
                 $value=text_value($input[$key][$field] ?? '',500);
