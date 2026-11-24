@@ -32,12 +32,14 @@ function start_session(): void {
     storage_mkdir($dir);
     ini_set('session.use_strict_mode', '1');
     ini_set('session.gc_maxlifetime', '2592000');
+    // Hosts may default to Redis; our save path is a local directory.
+    session_module_name('files');
     session_save_path($dir);
     session_name('niag_session');
     $path = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/').'/';
     session_set_cookie_params(['lifetime' => 2592000, 'path' => $path,
         'secure' => config()['secure_cookie'], 'httponly' => true, 'samesite' => 'Lax']);
-    session_start();
+    if (!session_start()) fail('Kunde inte starta sessionen. Kontrollera serverns sessionsinställningar.', 503);
     $_SESSION['csrf'] ??= uid();
 }
 require_once __DIR__.'/storage.php';
