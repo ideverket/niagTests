@@ -4,6 +4,11 @@ require_once dirname(__DIR__).'/vendor/autoload.php';
 // Disable font cache writes in the code directory, which need not be writable on the server.
 if (!defined('FPDF_CACHE_MODE')) define('FPDF_CACHE_MODE', 1);
 function new_pdf(string $orientation = 'P'): tFPDF {
+    foreach (['DejaVuSansCondensed.ttf','DejaVuSansCondensed-Bold.ttf'] as $font) {
+        if (!is_readable(dirname(__DIR__).'/vendor/setasign/tfpdf/font/unifont/'.$font)) {
+            throw new RuntimeException('Diplomets typsnitt saknas eller kan inte läsas: '.$font);
+        }
+    }
     $pdf = new tFPDF($orientation, 'mm', 'A4');
     $pdf->AddFont('DejaVu', '', 'DejaVuSansCondensed.ttf', true);
     $pdf->AddFont('DejaVu', 'B', 'DejaVuSansCondensed-Bold.ttf', true);

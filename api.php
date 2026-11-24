@@ -168,7 +168,7 @@ try {
             }
             $attempts=[];
             foreach (array_reverse($db['attempts']) as $a) if ($a['finishedAt']) $attempts[] = array_intersect_key($a,array_flip(['id','test','person','kind','simulated','startedAt','finishedAt','score','passed','diplomaMailSent']));
-            return ['admin'=>$admin,'banks'=>$db['banks'],'tests'=>$db['tests'],'admins'=>$db['admins'],'settings'=>$settings,
+            return ['admin'=>$admin,'banks'=>$db['banks'],'tests'=>array_map(fn($t)=>$t + test_text_defaults(), $db['tests']),'testTextDefaults'=>test_text_defaults(),'admins'=>$db['admins'],'settings'=>$settings,
                 'preference'=>$db['preferences'][$admin] ?? [],'attempts'=>$attempts,'mailLog'=>array_reverse($db['mailLog']),
                 'mailTransport'=>config()['mail_transport']];
         }
@@ -225,10 +225,16 @@ try {
         if ($action === 'invite') {
             $testId=required($input['testId'] ?? null,100); $t=$db['tests'][index_of($db['tests'],$testId)];
             $email=email_value($input['email'] ?? null); $days=integer($input['days'] ?? 5,1,365); $max=integer($input['max'] ?? 10,1,100);
+            $language=$input['language'] ?? 'sv';
+            if (!in_array($language,['sv','en'],true)) fail('Ogiltigt språk.');
+            $link=test_link($testId);
             $code=strtoupper(bin2hex(random_bytes(6))); $id=uid(); $expires=time()+$days*86400;
             $db['grants'][]=['id'=>$id,'testId'=>$testId,'email'=>$email,'kind'=>'code','expires'=>$expires,'max'=>$max,'used'=>0];
             $db['invites'][]=['id'=>uid(),'grantId'=>$id,'testId'=>$testId,'email'=>$email,'hash'=>hash('sha256',$code),'expires'=>$expires];
-            $ok=send_email($db,$email,'NIAG – inbjudan till test',"Du är inbjuden till ".$t['title']['sv'].".\nÖppna testet via NIAG:s hemsida och välj Ange kod.\nKod: $code\nE-post: $email\nGiltig till ".date('Y-m-d H:i',$expires).". Max $max försök.");
+            $t += test_text_defaults();
+            $values=['{test}'=>$t['title'][$language],'{code}'=>$code,'{email}'=>$email,
+                '{expires}'=>date('Y-m-d H:i',$expires),'{attempts}'=>(string)$max,'{link}'=>$link];
+            $ok=send_email($db,$email,strtr($t['inviteSubject'][$language],$values),strtr($t['inviteBody'][$language],$values));
             return ['ok'=>true,'mailSent'=>$ok,'code'=>$code,'expires'=>$expires];
         }
         if ($action === 'result') { $a=$db['attempts'][index_of($db['attempts'],required($input['id'] ?? null,100))]; return $a; }

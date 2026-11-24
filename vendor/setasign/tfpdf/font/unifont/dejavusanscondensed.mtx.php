@@ -13,7 +13,7 @@ $desc=array (
 );
 $up=-63;
 $ut=44;
-$ttffile='/Users/magnuspersson/Documents/Codex/niagTests/system/vendor/setasign/tfpdf/font/unifont/DejaVuSansCondensed.ttf';
+$ttffile=__DIR__.'/DejaVuSansCondensed.ttf';
 $originalsize=680264;
 $fontkey='dejavu';
 ?>
